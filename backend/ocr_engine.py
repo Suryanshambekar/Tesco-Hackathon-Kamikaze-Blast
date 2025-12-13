@@ -1,7 +1,13 @@
 """
 OCR Engine for text extraction from creatives
 """
-import pytesseract
+try:
+    import pytesseract
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
+    pytesseract = None
+
 from PIL import Image
 import re
 from typing import Dict, List, Optional
@@ -22,12 +28,17 @@ class OCREngine:
             languages: Tesseract language codes (e.g., "eng", "eng+fra")
         """
         self.languages = languages
-        # Set tesseract path if needed (Windows)
-        try:
-            # Try to find tesseract executable
-            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-        except:
-            pass
+        self.tesseract_available = TESSERACT_AVAILABLE
+        
+        if not self.tesseract_available:
+            logger.warning("Tesseract OCR not available. OCR features will be limited.")
+        else:
+            # Set tesseract path if needed (Windows)
+            try:
+                # Try to find tesseract executable
+                pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+            except:
+                pass
     
     def extract_text(self, image: Image.Image) -> str:
         """
@@ -39,6 +50,10 @@ class OCREngine:
         Returns:
             Extracted text string
         """
+        if not self.tesseract_available:
+            logger.warning("Tesseract not available, returning empty text")
+            return ""
+        
         try:
             # Convert to RGB if necessary
             if image.mode != 'RGB':
